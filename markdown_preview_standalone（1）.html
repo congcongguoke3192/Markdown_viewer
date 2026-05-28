@@ -1,0 +1,2510 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Preview</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .toolbar {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            z-index: 100;
+        }
+        
+        .toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .toolbar h1 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .search-container {
+            position: relative;
+        }
+
+        .search-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: #8b5cf6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .search-btn:hover {
+            background: #7c3aed;
+        }
+
+        .search-btn:active {
+            background: #6d28d9;
+        }
+
+        .search-panel {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            padding: 16px;
+            width: 360px;
+            display: none;
+            z-index: 1000;
+        }
+
+        .search-panel.show {
+            display: block;
+        }
+
+        .search-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .search-panel-header h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .search-close-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            color: #6b7280;
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        .search-close-btn:hover {
+            color: #1f2937;
+        }
+
+        .search-input-wrapper {
+            position: relative;
+            margin-bottom: 12px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 36px 10px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #8b5cf6;
+        }
+
+        .search-input-icon {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+        }
+
+        .search-options {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .search-option {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #4b5563;
+            cursor: pointer;
+        }
+
+        .search-option input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #8b5cf6;
+            cursor: pointer;
+        }
+
+        .search-option label {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .search-results-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: #6b7280;
+            margin-bottom: 12px;
+        }
+
+        .search-results-count {
+            font-weight: 500;
+        }
+
+        .search-nav-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .search-nav-btn {
+            padding: 6px 12px;
+            background: #f3f4f6;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #4b5563;
+            transition: all 0.2s;
+        }
+
+        .search-nav-btn:hover:not(:disabled) {
+            background: #8b5cf6;
+            color: white;
+        }
+
+        .search-nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .save-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: #f59e0b;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .save-btn:hover {
+            background: #d97706;
+        }
+
+        .save-btn:active {
+            background: #b45309;
+        }
+
+        .auto-save-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            color: #6b7280;
+            padding: 4px 8px;
+            background: #f3f4f6;
+            border-radius: 4px;
+        }
+
+        .auto-save-indicator.active {
+            color: #059669;
+            background: #d1fae5;
+        }
+
+        .auto-save-indicator.active::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: #059669;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .save-dialog-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .save-dialog-overlay.show {
+            display: flex;
+        }
+
+        .save-dialog {
+            background: white;
+            border-radius: 12px;
+            width: 480px;
+            max-width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .save-dialog-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .save-dialog-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .save-dialog-close-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .save-dialog-close-btn:hover {
+            color: #1f2937;
+        }
+
+        .save-dialog-body {
+            padding: 20px;
+        }
+
+        .save-dialog-row {
+            margin-bottom: 16px;
+        }
+
+        .save-dialog-row label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .save-dialog-row input[type="text"],
+        .save-dialog-row select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .save-dialog-row input[type="text"]:focus,
+        .save-dialog-row select:focus {
+            outline: none;
+            border-color: #8b5cf6;
+        }
+
+        .save-dialog-row select {
+            cursor: pointer;
+        }
+
+        .save-dialog-formats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .format-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .format-option:hover {
+            border-color: #8b5cf6;
+            background: #f9fafb;
+        }
+
+        .format-option.selected {
+            border-color: #8b5cf6;
+            background: #f5f3ff;
+        }
+
+        .format-option input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #8b5cf6;
+        }
+
+        .format-option .format-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .format-option .format-desc {
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .save-dialog-footer {
+            padding: 16px 20px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .save-dialog-footer button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .save-dialog-footer .btn-cancel {
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+
+        .save-dialog-footer .btn-cancel:hover {
+            background: #e5e7eb;
+        }
+
+        .save-dialog-footer .btn-save {
+            background: #8b5cf6;
+            color: white;
+        }
+
+        .save-dialog-footer .btn-save:hover {
+            background: #7c3aed;
+        }
+
+        .save-dialog-footer .btn-save:disabled {
+            background: #a78bfa;
+            cursor: not-allowed;
+        }
+
+        .save-progress {
+            margin-top: 12px;
+        }
+
+        .save-progress-bar {
+            height: 4px;
+            background: #e5e7eb;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .save-progress-bar-inner {
+            height: 100%;
+            background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .save-status {
+            font-size: 13px;
+            margin-top: 8px;
+            color: #6b7280;
+        }
+
+        .auto-save-settings-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .auto-save-settings-overlay.show {
+            display: flex;
+        }
+
+        .auto-save-settings {
+            background: white;
+            border-radius: 12px;
+            width: 420px;
+            max-width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .auto-save-settings-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .auto-save-settings-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .auto-save-settings-body {
+            padding: 20px;
+        }
+
+        .auto-save-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .auto-save-toggle label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .auto-save-toggle .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 26px;
+            background: #e5e7eb;
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .auto-save-toggle .toggle-switch.active {
+            background: #8b5cf6;
+        }
+
+        .auto-save-toggle .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+
+        .auto-save-toggle .toggle-switch.active::after {
+            transform: translateX(22px);
+        }
+
+        .auto-save-interval {
+            margin-bottom: 16px;
+        }
+
+        .auto-save-interval label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 12px;
+        }
+
+        .interval-options {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .interval-option {
+            padding: 10px;
+            text-align: center;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #4b5563;
+            transition: all 0.2s;
+        }
+
+        .interval-option:hover {
+            border-color: #8b5cf6;
+        }
+
+        .interval-option.selected {
+            border-color: #8b5cf6;
+            background: #f5f3ff;
+            color: #8b5cf6;
+            font-weight: 500;
+        }
+
+        .auto-save-settings-footer {
+            padding: 16px 20px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .auto-save-settings-footer button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .auto-save-settings-footer .btn-cancel {
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+
+        .auto-save-settings-footer .btn-cancel:hover {
+            background: #e5e7eb;
+        }
+
+        .auto-save-settings-footer .btn-save {
+            background: #8b5cf6;
+            color: white;
+        }
+
+        .auto-save-settings-footer .btn-save:hover {
+            background: #7c3aed;
+        }
+
+        .error-toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #dc2626;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 3000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .error-toast.show {
+            opacity: 1;
+        }
+
+        .success-toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #059669;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 3000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .success-toast.show {
+            opacity: 1;
+        }
+        
+        .upload-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        
+        .upload-btn:hover {
+            background: #2563eb;
+        }
+        
+        .upload-btn:active {
+            background: #1d4ed8;
+        }
+        
+        .upload-btn:disabled {
+            background: #93c5fd;
+            cursor: not-allowed;
+        }
+        
+        #file-input {
+            display: none;
+        }
+
+        #image-input {
+            display: none;
+        }
+
+        .image-upload-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .image-upload-btn:hover {
+            background: #059669;
+        }
+
+        .image-upload-btn:active {
+            background: #047857;
+        }
+
+        .gfm-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #4b5563;
+        }
+
+        .gfm-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #8b5cf6;
+            cursor: pointer;
+        }
+
+        #upload-status {
+            font-size: 13px;
+            color: #6b7280;
+            padding: 4px 8px;
+            background: #f3f4f6;
+            border-radius: 4px;
+        }
+
+        #upload-status.success {
+            color: #059669;
+            background: #d1fae5;
+        }
+
+        #upload-status.error {
+            color: #dc2626;
+            background: #fee2e2;
+        }
+
+        #progress-container {
+            position: fixed;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            z-index: 1001;
+        }
+
+        .progress-bar {
+            background: #e5e7eb;
+            border-radius: 8px;
+            height: 8px;
+            overflow: hidden;
+        }
+
+        .progress-bar-inner {
+            height: 100%;
+            background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .main-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        .editor-panel, .preview-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .editor-panel {
+            border-right: 1px solid #e5e7eb;
+        }
+        
+        .panel-header {
+            padding: 12px 16px;
+            background: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .editor-wrapper {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .editor-textarea {
+            width: 100%;
+            height: 100%;
+            padding: 16px;
+            border: none;
+            resize: none;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            background: #fafafa;
+            outline: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+        
+        .editor-textarea::placeholder {
+            color: #9ca3af;
+        }
+        
+        .preview-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: white;
+        }
+        
+        .preview-content h1 { font-size: 2em; margin: 0.67em 0; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.3em; }
+        .preview-content h2 { font-size: 1.5em; margin: 0.83em 0; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.3em; }
+        .preview-content h3 { font-size: 1.17em; margin: 1em 0; }
+        .preview-content h4 { font-size: 1em; margin: 1.33em 0; }
+        .preview-content h5 { font-size: 0.83em; margin: 1.67em 0; }
+        .preview-content h6 { font-size: 0.67em; margin: 2.33em 0; }
+        
+        .preview-content p {
+            margin: 1em 0;
+            line-height: 1.7;
+        }
+        
+        .preview-content a {
+            color: #3b82f6;
+            text-decoration: none;
+        }
+        
+        .preview-content a:hover {
+            text-decoration: underline;
+        }
+        
+        .preview-content code {
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 0.875em;
+            padding: 2px 6px;
+            background: #f3f4f6;
+            border-radius: 4px;
+            color: #e53e3e;
+        }
+        
+        .preview-content pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 1em 0;
+            position: relative;
+        }
+        
+        .preview-content pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        
+        .preview-content blockquote {
+            margin: 1em 0;
+            padding: 0.5em 1em;
+            border-left: 4px solid #8b5cf6;
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+        
+        .preview-content blockquote p {
+            margin: 0.5em 0;
+        }
+        
+        .preview-content ul, .preview-content ol {
+            margin: 1em 0;
+            padding-left: 2em;
+        }
+        
+        .preview-content li {
+            margin: 0.5em 0;
+        }
+        
+        .preview-content table {
+            border-collapse: collapse;
+            margin: 1em 0;
+            width: 100%;
+        }
+        
+        .preview-content th, .preview-content td {
+            border: 1px solid #e5e7eb;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        
+        .preview-content th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+        
+        .preview-content tr:nth-child(even) {
+            background: #f9fafb;
+        }
+        
+        .preview-content hr {
+            border: none;
+            border-top: 1px solid #e5e7eb;
+            margin: 2em 0;
+        }
+        
+        .preview-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 8px 0;
+        }
+        
+        .code-keyword { color: #ff79c6; font-weight: bold; }
+        .code-string { color: #f1fa8c; }
+        .code-number { color: #bd93f9; }
+        .code-comment { color: #6272a4; font-style: italic; }
+        .code-function { color: #50fa7b; }
+        .code-class { color: #8be9fd; }
+        
+        .code-lang-label {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            font-size: 11px;
+            color: #6272a4;
+            text-transform: uppercase;
+        }
+        
+        .search-highlight {
+            background: #fef08a;
+            border-radius: 2px;
+            position: relative;
+        }
+
+        .search-highlight.current {
+            background: #f97316;
+        }
+
+        .search-highlight.current::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -2px;
+            height: 2px;
+            background: #ea580c;
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        
+        .modal-overlay.show {
+            display: flex;
+        }
+        
+        .modal {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+        
+        .modal h3 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            color: #1f2937;
+        }
+        
+        .modal button {
+            margin-top: 16px;
+            padding: 10px 20px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .modal button:hover {
+            background: #2563eb;
+        }
+        
+        #modal-content {
+            font-size: 14px;
+            color: #4b5563;
+            line-height: 1.6;
+        }
+        
+        .image-preview-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .image-preview-modal.show {
+            display: flex;
+        }
+
+        .image-preview-content {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow: auto;
+        }
+
+        .image-preview-content img {
+            max-width: 100%;
+            max-height: 70vh;
+            border-radius: 8px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .image-preview-info {
+            margin-top: 16px;
+            text-align: center;
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .image-preview-actions {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .image-preview-actions button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-confirm {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-cancel {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .btn-confirm:hover {
+            background: #2563eb;
+        }
+
+        .btn-cancel:hover {
+            background: #d1d5db;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .editor-panel {
+                border-right: none;
+                border-bottom: 1px solid #e5e7eb;
+            }
+            
+            .editor-panel, .preview-panel {
+                flex: none;
+                height: 50%;
+            }
+            
+            .search-panel {
+                width: calc(100% - 40px);
+                right: 20px;
+                left: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <div class="toolbar-left">
+            <h1>Markdown Preview</h1>
+            <button class="save-btn" id="save-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"></path>
+                    <polyline points="17 3 12 8 7 3"></polyline>
+                    <line x1="12" y1="8" x2="12" y2="15"></line>
+                </svg>
+                保存
+            </button>
+            
+            <label class="upload-btn" for="file-input">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                上传文件
+            </label>
+            <input type="file" id="file-input" accept=".md,.txt,.markdown">
+            
+            <label class="image-upload-btn" for="image-input">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+                插入图片
+            </label>
+            <input type="file" id="image-input" accept="image/jpeg,image/png,image/gif,image/webp,image/bmp">
+        </div>
+        
+        <div class="toolbar-right">
+            <div class="search-container">
+                <button class="search-btn" id="search-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    查找
+                </button>
+            </div>
+            <div class="gfm-toggle">
+                <input type="checkbox" id="gfm-toggle" checked>
+                <label for="gfm-toggle">GFM Mode</label>
+            </div>
+            <div class="auto-save-indicator" id="auto-save-indicator">
+                <span>自动保存</span>
+            </div>
+            <button class="search-btn" id="auto-save-settings-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                设置
+            </button>
+        </div>
+        
+        <div id="upload-status"></div>
+    </div>
+
+    <div id="progress-container">
+        <div class="progress-bar">
+            <div class="progress-bar-inner" id="progress-bar"></div>
+        </div>
+    </div>
+    
+    <div class="search-panel" id="search-panel">
+        <div class="search-panel-header">
+            <h3>查找</h3>
+            <button class="search-close-btn" id="search-close-btn">&times;</button>
+        </div>
+        <div class="search-input-wrapper">
+            <input type="text" class="search-input" id="search-input" placeholder="输入搜索内容...">
+            <svg class="search-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+        </div>
+        <div class="search-options">
+            <div class="search-option">
+                <input type="checkbox" id="case-sensitive">
+                <label for="case-sensitive">区分大小写</label>
+            </div>
+            <div class="search-option">
+                <input type="checkbox" id="whole-word">
+                <label for="whole-word">全词匹配</label>
+            </div>
+        </div>
+        <div class="search-results-info" id="search-results-info">
+            <span class="search-results-count" id="search-results-count"></span>
+            <div class="search-nav-buttons">
+                <button class="search-nav-btn" id="prev-match" disabled>上一个</button>
+                <button class="search-nav-btn" id="next-match" disabled>下一个</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="editor-panel">
+            <div class="panel-header">
+                <span>Markdown Editor</span>
+                <span id="code-stats" style="font-size: 12px; color: #9ca3af;"></span>
+            </div>
+            <div class="editor-wrapper">
+                <textarea id="editor" class="editor-textarea" placeholder="输入 Markdown 内容..."></textarea>
+            </div>
+        </div>
+        <div class="preview-panel">
+            <div class="panel-header">Preview</div>
+            <div id="preview" class="preview-content"></div>
+        </div>
+    </div>
+    
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal">
+            <h3>文件上传结果</h3>
+            <div id="modal-content"></div>
+            <button onclick="document.getElementById('modal-overlay').classList.remove('show')">关闭</button>
+        </div>
+    </div>
+    
+    <div class="image-preview-modal" id="image-preview-modal">
+        <div class="image-preview-content">
+            <img id="preview-image" src="" alt="图片预览">
+            <div class="image-preview-info" id="image-info"></div>
+            <div class="image-preview-actions">
+                <button class="btn-cancel" id="btn-cancel-preview">取消</button>
+                <button class="btn-confirm" id="btn-insert-image">插入图片</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="save-dialog-overlay" id="save-dialog-overlay">
+        <div class="save-dialog">
+            <div class="save-dialog-header">
+                <h3>保存文件</h3>
+                <button class="save-dialog-close-btn" id="save-dialog-close-btn">&times;</button>
+            </div>
+            <div class="save-dialog-body">
+                <div class="save-dialog-row">
+                    <label for="save-filename">文件名</label>
+                    <input type="text" id="save-filename" placeholder="输入文件名">
+                </div>
+                <div class="save-dialog-row">
+                    <label>文件格式</label>
+                    <div class="save-dialog-formats">
+                        <label class="format-option" id="format-md">
+                            <input type="radio" name="save-format" value="md" checked>
+                            <div>
+                                <div class="format-name">Markdown</div>
+                                <div class="format-desc">.md</div>
+                            </div>
+                        </label>
+                        <label class="format-option" id="format-txt">
+                            <input type="radio" name="save-format" value="txt">
+                            <div>
+                                <div class="format-name">纯文本</div>
+                                <div class="format-desc">.txt</div>
+                            </div>
+                        </label>
+                        <label class="format-option" id="format-json">
+                            <input type="radio" name="save-format" value="json">
+                            <div>
+                                <div class="format-name">JSON</div>
+                                <div class="format-desc">.json</div>
+                            </div>
+                        </label>
+                        <label class="format-option" id="format-html">
+                            <input type="radio" name="save-format" value="html">
+                            <div>
+                                <div class="format-name">HTML</div>
+                                <div class="format-desc">.html</div>
+                            </div>
+                        </label>
+                        <label class="format-option" id="format-csv">
+                            <input type="radio" name="save-format" value="csv">
+                            <div>
+                                <div class="format-name">CSV</div>
+                                <div class="format-desc">.csv</div>
+                            </div>
+                        </label>
+                        <label class="format-option" id="format-rtf">
+                            <input type="radio" name="save-format" value="rtf">
+                            <div>
+                                <div class="format-name">RTF</div>
+                                <div class="format-desc">.rtf</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+                <div class="save-progress" id="save-progress" style="display: none;">
+                    <div class="save-progress-bar">
+                        <div class="save-progress-bar-inner" id="save-progress-bar"></div>
+                    </div>
+                    <div class="save-status" id="save-status"></div>
+                </div>
+            </div>
+            <div class="save-dialog-footer">
+                <button class="btn-cancel" id="save-dialog-cancel-btn">取消</button>
+                <button class="btn-save" id="save-dialog-save-btn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="auto-save-settings-overlay" id="auto-save-settings-overlay">
+        <div class="auto-save-settings">
+            <div class="auto-save-settings-header">
+                <h3>自动保存设置</h3>
+                <button class="save-dialog-close-btn" id="auto-save-settings-close-btn">&times;</button>
+            </div>
+            <div class="auto-save-settings-body">
+                <div class="auto-save-toggle">
+                    <label>启用自动保存</label>
+                    <div class="toggle-switch" id="auto-save-toggle"></div>
+                </div>
+                <div class="auto-save-interval">
+                    <label>自动保存间隔</label>
+                    <div class="interval-options">
+                        <div class="interval-option selected" data-interval="30">30秒</div>
+                        <div class="interval-option" data-interval="60">1分钟</div>
+                        <div class="interval-option" data-interval="300">5分钟</div>
+                        <div class="interval-option" data-interval="600">10分钟</div>
+                    </div>
+                </div>
+            </div>
+            <div class="auto-save-settings-footer">
+                <button class="btn-cancel" id="auto-save-settings-cancel-btn">取消</button>
+                <button class="btn-save" id="auto-save-settings-save-btn">保存设置</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="error-toast" id="error-toast"></div>
+    <div class="success-toast" id="success-toast"></div>
+
+    <script>
+        const CodeBlockParser = (function() {
+            const languageKeywords = {
+                python: ['def', 'class', 'if', 'else', 'elif', 'for', 'while', 'return', 'import', 'from', 'as', 'try', 'except', 'finally', 'with', 'True', 'False', 'None', 'and', 'or', 'not', 'in', 'is', 'lambda', 'pass', 'continue', 'break', 'self', '__init__', '__str__', '__repr__', 'print', 'len', 'range', 'list', 'dict', 'set', 'tuple', 'int', 'float', 'str', 'bool'],
+                javascript: ['var', 'let', 'const', 'function', 'class', 'if', 'else', 'for', 'while', 'return', 'import', 'export', 'from', 'try', 'catch', 'finally', 'throw', 'new', 'this', 'super', 'extends', 'static', 'async', 'await', 'yield', 'true', 'false', 'null', 'undefined', 'typeof', 'instanceof', 'in', 'of', 'delete', 'void'],
+                java: ['public', 'private', 'protected', 'static', 'final', 'void', 'int', 'float', 'double', 'boolean', 'char', 'class', 'interface', 'extends', 'implements', 'if', 'else', 'for', 'while', 'do', 'return', 'try', 'catch', 'finally', 'throw', 'throws', 'new', 'this', 'super', 'package', 'import', 'true', 'false', 'null'],
+                cpp: ['int', 'float', 'double', 'bool', 'char', 'void', 'class', 'struct', 'public', 'private', 'protected', 'virtual', 'override', 'const', 'static', 'inline', 'if', 'else', 'for', 'while', 'do', 'return', 'try', 'catch', 'throw', 'new', 'delete', 'this', 'namespace', 'using', 'true', 'false', 'nullptr'],
+                go: ['package', 'import', 'func', 'var', 'const', 'type', 'struct', 'interface', 'if', 'else', 'for', 'range', 'return', 'defer', 'go', 'chan', 'select', 'case', 'default', 'map', 'make', 'new', 'true', 'false', 'nil', 'error'],
+                rust: ['fn', 'let', 'mut', 'const', 'static', 'struct', 'enum', 'impl', 'trait', 'pub', 'use', 'mod', 'if', 'else', 'for', 'while', 'loop', 'return', 'match', 'case', 'self', 'Self', 'true', 'false', 'Some', 'None', 'Ok', 'Err'],
+                typescript: ['type', 'interface', 'enum', 'implements', 'extends', 'public', 'private', 'protected', 'static', 'readonly', 'abstract', 'as', 'async', 'await', 'class', 'const', 'declare', 'export', 'from', 'function', 'get', 'set', 'if', 'else', 'for', 'while', 'return', 'new', 'this', 'super', 'true', 'false', 'null', 'undefined', 'typeof', 'instanceof', 'in', 'of', 'namespace', 'module'],
+                html: ['div', 'span', 'p', 'a', 'img', 'table', 'tr', 'td', 'th', 'ul', 'ol', 'li', 'form', 'input', 'button', 'select', 'option', 'textarea', 'label', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header', 'footer', 'nav', 'section', 'article', 'aside', 'main', 'head', 'body', 'script', 'style', 'link', 'meta', 'title', 'class', 'id', 'src', 'href', 'alt'],
+                css: ['color', 'background', 'margin', 'padding', 'border', 'width', 'height', 'display', 'flex', 'grid', 'position', 'top', 'left', 'right', 'bottom', 'font-size', 'font-weight', 'text-align', 'line-height', 'overflow', 'z-index', 'opacity', 'transform', 'transition', 'animation', 'box-shadow', 'border-radius', 'content', 'justify-content', 'align-items', 'flex-direction', 'flex-wrap'],
+                bash: ['echo', 'if', 'else', 'then', 'fi', 'for', 'while', 'do', 'done', 'case', 'esac', 'function', 'return', 'exit', 'local', 'export', 'source', 'alias', 'unalias', 'cd', 'pwd', 'ls', 'mkdir', 'rm', 'cp', 'mv', 'cat', 'grep', 'sed', 'awk', 'find', 'chmod', 'chown', 'sudo', 'apt', 'yum', 'npm', 'git', 'curl', 'wget', 'tar', 'zip', 'unzip']
+            };
+
+            function escapeHtml(text) {
+                return text.replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[char]);
+            }
+
+            function highlightSyntax(code, lang) {
+                const keywords = languageKeywords[lang] || languageKeywords.python;
+                
+                const lines = code.split('\n');
+                const highlightedLines = [];
+
+                lines.forEach(line => {
+                    let inString = false;
+                    let stringChar = '';
+                    let inBlockComment = false;
+                    let lineResult = '';
+                    let wordBuffer = '';
+                    
+                    for (let i = 0; i < line.length; i++) {
+                        const char = line[i];
+                        const nextChar = line[i + 1];
+                        
+                        if (!inBlockComment && !inString) {
+                            if (char === '/' && nextChar === '/') {
+                                if (wordBuffer) {
+                                    lineResult += processWord(wordBuffer, keywords);
+                                    wordBuffer = '';
+                                }
+                                lineResult += '<span class="code-comment">' + escapeHtml(line.substring(i)) + '</span>';
+                                break;
+                            }
+                            if (char === '/' && nextChar === '*') {
+                                if (wordBuffer) {
+                                    lineResult += processWord(wordBuffer, keywords);
+                                    wordBuffer = '';
+                                }
+                                inBlockComment = true;
+                                lineResult += '<span class="code-comment">/*';
+                                i++;
+                                continue;
+                            }
+                            if (char === '#' && (i === 0 || !/\w/.test(line[i - 1]))) {
+                                if (wordBuffer) {
+                                    lineResult += processWord(wordBuffer, keywords);
+                                    wordBuffer = '';
+                                }
+                                lineResult += '<span class="code-comment">' + escapeHtml(line.substring(i)) + '</span>';
+                                break;
+                            }
+                            if (char === '"' || char === "'") {
+                                if (wordBuffer) {
+                                    lineResult += processWord(wordBuffer, keywords);
+                                    wordBuffer = '';
+                                }
+                                inString = true;
+                                stringChar = char;
+                                lineResult += '<span class="code-string">' + escapeHtml(char);
+                                continue;
+                            }
+                            if (/[\w]/.test(char)) {
+                                wordBuffer += char;
+                            } else {
+                                if (wordBuffer) {
+                                    lineResult += processWord(wordBuffer, keywords);
+                                    wordBuffer = '';
+                                }
+                                lineResult += escapeHtml(char);
+                            }
+                        } else if (inString) {
+                            if (char === '\\' && nextChar === stringChar) {
+                                lineResult += escapeHtml('\\' + stringChar);
+                                i++;
+                                continue;
+                            }
+                            if (char === stringChar) {
+                                lineResult += escapeHtml(char) + '</span>';
+                                inString = false;
+                                stringChar = '';
+                                continue;
+                            }
+                            lineResult += escapeHtml(char);
+                        } else if (inBlockComment) {
+                            if (char === '*' && nextChar === '/') {
+                                lineResult += '*/</span>';
+                                inBlockComment = false;
+                                i++;
+                                continue;
+                            }
+                            lineResult += escapeHtml(char);
+                        }
+                    }
+                    
+                    if (wordBuffer) {
+                        lineResult += processWord(wordBuffer, keywords);
+                    }
+                    
+                    highlightedLines.push(lineResult);
+                });
+
+                return highlightedLines.join('\n');
+            }
+
+            function processWord(word, keywords) {
+                if (/^\d+\.?\d*$/.test(word)) {
+                    return '<span class="code-number">' + escapeHtml(word) + '</span>';
+                }
+                
+                if (keywords.includes(word)) {
+                    return '<span class="code-keyword">' + escapeHtml(word) + '</span>';
+                }
+                
+                if (/^[A-Z][a-zA-Z0-9]*$/.test(word)) {
+                    return '<span class="code-class">' + escapeHtml(word) + '</span>';
+                }
+                
+                return escapeHtml(word);
+            }
+
+            function extractCodeBlocks(markdown) {
+                const blocks = [];
+                const regex = /```(\w*)\n([\s\S]*?)```/g;
+                let match;
+                
+                while ((match = regex.exec(markdown)) !== null) {
+                    blocks.push({
+                        language: match[1] || 'text',
+                        content: match[2],
+                        startIndex: match.index,
+                        endIndex: match.index + match[0].length
+                    });
+                }
+                
+                return blocks;
+            }
+
+            return {
+                highlightSyntax: highlightSyntax,
+                extractCodeBlocks: extractCodeBlocks,
+                getSupportedLanguages: function() {
+                    return Object.keys(languageKeywords);
+                }
+            };
+        })();
+
+        const MarkdownParser = (function() {
+            function escapeHtml(text) {
+                return text.replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[char]);
+            }
+
+            function parseInline(text) {
+                text = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, src) => {
+                    return `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" />`;
+                });
+                text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text, href) => {
+                    return `<a href="${escapeHtml(href)}" target="_blank">${escapeHtml(text)}</a>`;
+                });
+                text = escapeHtml(text);
+                text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+                text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+                text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+                return text;
+            }
+
+            function parseLine(line) {
+                if (/^#{1,6}\s+/.test(line)) {
+                    const level = line.match(/^#+/)[0].length;
+                    const text = line.replace(/^#{1,6}\s+/, '');
+                    return `<h${level}>${parseInline(text)}</h${level}>`;
+                }
+
+                if (/^> /.test(line)) {
+                    return `<blockquote>${parseInline(line.substring(2))}</blockquote>`;
+                }
+
+                if (/^\s*[-*+]\s+/.test(line)) {
+                    return { list: 'ul', content: parseInline(line.replace(/^\s*[-*+]\s+/, '')) };
+                }
+
+                if (/^\s*\d+\.\s+/.test(line)) {
+                    return { list: 'ol', content: parseInline(line.replace(/^\s*\d+\.\s+/, '')) };
+                }
+
+                if (/^\s*\|.+\|\s*$/.test(line)) {
+                    const cells = line.split('|').filter(c => c.trim());
+                    if (line.includes('---')) {
+                        return `<tr>${cells.map(() => '<th></th>').join('')}</tr>`;
+                    }
+                    return `<tr>${cells.map(cell => `<td>${parseInline(cell.trim())}</td>`).join('')}</tr>`;
+                }
+
+                if (line.trim()) {
+                    const trimmed = line.trim();
+                    const imgMatch = trimmed.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+                    if (imgMatch) {
+                        const alt = escapeHtml(imgMatch[1]);
+                        const src = escapeHtml(imgMatch[2]);
+                        return `<img src="${src}" alt="${alt}" />`;
+                    }
+                    return `<p>${parseInline(line)}</p>`;
+                }
+
+                return '';
+            }
+
+            return {
+                parse: function(markdown, gfm = true) {
+                    const lines = markdown.split('\n');
+                    let html = '';
+                    let inCode = false;
+                    let codeLang = '';
+                    let codeContent = '';
+                    let inTable = false;
+                    let inList = null;
+                    let listBuffer = [];
+
+                    lines.forEach((line, index) => {
+                        if (inCode) {
+                            const codeEndMatch = line.match(/^```$/);
+                            if (codeEndMatch) {
+                                const highlighted = CodeBlockParser.highlightSyntax(codeContent, codeLang);
+                                html += `<pre><code>${highlighted}</code><span class="code-lang-label">${codeLang}</span></pre>`;
+                                inCode = false;
+                                codeContent = '';
+                                codeLang = '';
+                            } else {
+                                codeContent += (codeContent ? '\n' : '') + line;
+                            }
+                            return;
+                        }
+
+                        const codeStartMatch = line.match(/^```(\w+)$/);
+                        if (codeStartMatch) {
+                            inCode = true;
+                            codeLang = codeStartMatch[1];
+                            return;
+                        }
+
+                        const codeStartPlain = line.match(/^```$/);
+                        if (codeStartPlain) {
+                            inCode = true;
+                            codeLang = 'text';
+                            return;
+                        }
+
+                        const result = parseLine(line);
+
+                        if (typeof result === 'object') {
+                            if (result.list) {
+                                if (inList !== result.list) {
+                                    if (inList) {
+                                        html += `<${inList}>${listBuffer.map(item => `<li>${item}</li>`).join('')}</${inList}>`;
+                                        listBuffer = [];
+                                    }
+                                    inList = result.list;
+                                }
+                                listBuffer.push(result.content);
+                                return;
+                            }
+                        }
+
+                        if (inList) {
+                            html += `<${inList}>${listBuffer.map(item => `<li>${item}</li>`).join('')}</${inList}>`;
+                            inList = null;
+                            listBuffer = [];
+                        }
+
+                        if (/^\s*\|.+\|\s*$/.test(line)) {
+                            if (!inTable) {
+                                html += '<table>';
+                                inTable = true;
+                            }
+                            html += result;
+                            if (index === lines.length - 1 || !/^\s*\|.+\|\s*$/.test(lines[index + 1])) {
+                                html += '</table>';
+                                inTable = false;
+                            }
+                        } else {
+                            html += result;
+                        }
+                    });
+
+                    if (inList) {
+                        html += `<${inList}>${listBuffer.map(item => `<li>${item}</li>`).join('')}</${inList}>`;
+                    }
+
+                    return html;
+                }
+            };
+        })();
+
+        const SearchManager = (function() {
+            let matches = [];
+            let currentMatchIndex = -1;
+            let searchPanel = null;
+            let searchInput = null;
+            let caseSensitive = false;
+            let wholeWord = false;
+            let prevBtn = null;
+            let nextBtn = null;
+            let resultsCount = null;
+            let editor = null;
+            let originalValue = '';
+            let highlightTimeout = null;
+
+            function init() {
+                searchPanel = document.getElementById('search-panel');
+                searchInput = document.getElementById('search-input');
+                prevBtn = document.getElementById('prev-match');
+                nextBtn = document.getElementById('next-match');
+                resultsCount = document.getElementById('search-results-count');
+                editor = document.getElementById('editor');
+
+                document.getElementById('search-btn').addEventListener('click', openSearch);
+                document.getElementById('search-close-btn').addEventListener('click', closeSearch);
+                searchInput.addEventListener('input', debounce(performSearch, 150));
+                prevBtn.addEventListener('click', prevMatch);
+                nextBtn.addEventListener('click', nextMatch);
+
+                document.getElementById('case-sensitive').addEventListener('change', function() {
+                    caseSensitive = this.checked;
+                    performSearch();
+                });
+
+                document.getElementById('whole-word').addEventListener('change', function() {
+                    wholeWord = this.checked;
+                    performSearch();
+                });
+
+                document.addEventListener('keydown', function(e) {
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                        e.preventDefault();
+                        openSearch();
+                    }
+                    if (e.key === 'Escape' && searchPanel.classList.contains('show')) {
+                        closeSearch();
+                    }
+                    if (searchPanel.classList.contains('show')) {
+                        if (e.key === 'Enter') {
+                            if (e.shiftKey) {
+                                prevMatch();
+                            } else {
+                                nextMatch();
+                            }
+                        }
+                        if (e.key === 'ArrowDown' && document.activeElement !== searchInput) {
+                            e.preventDefault();
+                            nextMatch();
+                        }
+                        if (e.key === 'ArrowUp' && document.activeElement !== searchInput) {
+                            e.preventDefault();
+                            prevMatch();
+                        }
+                    }
+                });
+
+                editor.addEventListener('scroll', syncScroll);
+            }
+
+            function openSearch() {
+                searchPanel.classList.add('show');
+                searchInput.focus();
+                searchInput.select();
+            }
+
+            function closeSearch() {
+                searchPanel.classList.remove('show');
+                clearHighlights();
+                matches = [];
+                currentMatchIndex = -1;
+            }
+
+            function debounce(func, wait) {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        clearTimeout(timeout);
+                        func(...args);
+                    };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
+            }
+
+            function performSearch() {
+                const searchText = searchInput.value;
+                const text = editor.value;
+
+                clearHighlights();
+                matches = [];
+                currentMatchIndex = -1;
+
+                if (!searchText) {
+                    updateResultsInfo();
+                    return;
+                }
+
+                let pattern = searchText;
+                if (!caseSensitive) {
+                    pattern = pattern.toLowerCase();
+                }
+
+                const flags = caseSensitive ? 'g' : 'gi';
+                let regex;
+                try {
+                    if (wholeWord) {
+                        regex = new RegExp(`\\b${escapeRegex(pattern)}\\b`, flags);
+                    } else {
+                        regex = new RegExp(escapeRegex(pattern), flags);
+                    }
+                } catch (e) {
+                    regex = new RegExp(escapeRegex(searchText), flags);
+                }
+
+                const textToSearch = caseSensitive ? text : text.toLowerCase();
+                let match;
+                while ((match = regex.exec(textToSearch)) !== null) {
+                    matches.push({
+                        start: match.index,
+                        end: match.index + match[0].length,
+                        text: text.substring(match.index, match.index + match[0].length)
+                    });
+                    if (matches.length > 1000) break;
+                }
+
+                if (matches.length > 0) {
+                    currentMatchIndex = 0;
+                    highlightAllMatches();
+                }
+
+                updateResultsInfo();
+                scrollToCurrentMatch();
+            }
+
+            function escapeRegex(string) {
+                return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            }
+
+            function highlightAllMatches() {
+                if (matches.length === 0) return;
+
+                const text = editor.value;
+                const beforeMatches = text.substring(0, matches[0].start);
+                const afterMatches = text.substring(matches[matches.length - 1].end);
+
+                editor.value = beforeMatches + getHighlightedText() + afterMatches;
+
+                if (highlightTimeout) clearTimeout(highlightTimeout);
+                highlightTimeout = setTimeout(() => {
+                    syncScroll();
+                }, 10);
+            }
+
+            function getHighlightedText() {
+                let result = '';
+                const text = editor.value;
+
+                matches.forEach((match, index) => {
+                    const highlighted = index === currentMatchIndex
+                        ? `<span class="search-highlight current">${escapeHtml(match.text)}</span>`
+                        : `<span class="search-highlight">${escapeHtml(match.text)}</span>`;
+                    result += highlighted;
+                });
+
+                return result;
+            }
+
+            function clearHighlights() {
+                originalValue = editor.value.replace(/<[^>]+>/g, '');
+                const text = editor.value;
+                const highlightedText = text.replace(/<span class="search-highlight[^"]*">([^<]*)<\/span>/g, '$1');
+                editor.value = highlightedText;
+            }
+
+            function updateResultsInfo() {
+                if (matches.length === 0) {
+                    const searchText = searchInput.value;
+                    resultsCount.textContent = searchText ? '无匹配结果' : '';
+                } else {
+                    resultsCount.textContent = `共 ${matches.length} 个匹配，当前第 ${currentMatchIndex + 1} 个`;
+                }
+                prevBtn.disabled = matches.length <= 1;
+                nextBtn.disabled = matches.length <= 1;
+            }
+
+            function prevMatch() {
+                if (matches.length === 0) return;
+                currentMatchIndex = currentMatchIndex > 0 ? currentMatchIndex - 1 : matches.length - 1;
+                updateResultsInfo();
+                highlightAllMatches();
+                scrollToCurrentMatch();
+            }
+
+            function nextMatch() {
+                if (matches.length === 0) return;
+                currentMatchIndex = currentMatchIndex < matches.length - 1 ? currentMatchIndex + 1 : 0;
+                updateResultsInfo();
+                highlightAllMatches();
+                scrollToCurrentMatch();
+            }
+
+            function scrollToCurrentMatch() {
+                if (matches.length === 0 || currentMatchIndex < 0) return;
+
+                const match = matches[currentMatchIndex];
+                const text = editor.value;
+                const beforeMatch = text.substring(0, match.start);
+                const lines = beforeMatch.split('\n');
+                const lineNumber = lines.length;
+                const lineHeight = 22;
+                const scrollTop = editor.scrollTop;
+                const editorHeight = editor.clientHeight;
+
+                const targetScrollTop = (lineNumber - 2) * lineHeight;
+                editor.scrollTop = Math.max(0, targetScrollTop);
+            }
+
+            function syncScroll() {
+            }
+
+            return {
+                init: init,
+                openSearch: openSearch,
+                closeSearch: closeSearch
+            };
+        })();
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const editor = document.getElementById('editor');
+            const preview = document.getElementById('preview');
+            const gfmToggle = document.getElementById('gfm-toggle');
+            const codeStats = document.getElementById('code-stats');
+            const fileInput = document.getElementById('file-input');
+            const uploadStatus = document.getElementById('upload-status');
+            const progressContainer = document.getElementById('progress-container');
+            const progressBar = document.getElementById('progress-bar');
+
+            SearchManager.init();
+
+            const defaultContent = `# 欢迎使用 Markdown Preview
+
+这是一个功能丰富的 Markdown 编辑器和预览工具。
+
+## 主要功能
+
+- **实时预览**：编辑内容即时渲染
+- **代码高亮**：支持多种编程语言
+- **图片插入**：支持本地上传图片
+- **GFM 模式**：支持 GitHub 风格的 Markdown
+
+## 代码示例
+
+\`\`\`python
+def hello(name: str) -> str:
+    """Greet someone by name"""
+    return f"Hello, {name}!"
+
+if __name__ == "__main__":
+    print(hello("World"))
+\`\`\`
+
+## 表格示例
+
+| 功能 | 状态 |
+|------|------|
+| 编辑器 | ✅ |
+| 预览 | ✅ |
+| 搜索 | ✅ |
+
+## 引用示例
+
+> 这是一段引用文本
+> 可以包含多行
+
+## 列表示例
+
+1. 第一项
+2. 第二项
+3. 第三项
+
+试试按 **Ctrl+F** 打开搜索功能！
+`;
+
+            function showStatus(message, type) {
+                uploadStatus.textContent = message;
+                uploadStatus.className = type;
+                uploadStatus.style.display = 'block';
+                setTimeout(() => {
+                    uploadStatus.style.display = 'none';
+                }, 3000);
+            }
+
+            function showModal(title, content) {
+                document.querySelector('#modal-overlay h3').textContent = title;
+                document.getElementById('modal-content').innerHTML = content;
+                document.getElementById('modal-overlay').classList.add('show');
+            }
+
+            function refreshPreview() {
+                const markdown = editor.value;
+                const gfm = gfmToggle.checked;
+                preview.innerHTML = MarkdownParser.parse(markdown, gfm);
+
+                const codeBlocks = CodeBlockParser.extractCodeBlocks(markdown);
+                const languages = new Set(codeBlocks.map(b => b.language || 'text'));
+                if (codeBlocks.length > 0) {
+                    codeStats.textContent = `${codeBlocks.length} 代码块 | ${Array.from(languages).join(', ')}`;
+                } else {
+                    codeStats.textContent = '';
+                }
+            }
+
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                if (file.size > 5 * 1024 * 1024) {
+                    showStatus('文件过大（最大5MB）', 'error');
+                    showModal('上传失败', '文件大小超过限制（最大5MB）。请选择更小的文件。');
+                    return;
+                }
+
+                const allowedTypes = ['.md', '.txt', '.markdown', 'text/plain', 'text/markdown'];
+                const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+                if (!allowedTypes.includes(fileExt) && !allowedTypes.includes(file.type)) {
+                    showStatus('不支持的文件格式', 'error');
+                    showModal('上传失败', '不支持的文件格式。请选择 .md、.txt 或 .markdown 文件。');
+                    return;
+                }
+
+                showStatus('正在读取文件...', 'info');
+                progressContainer.style.display = 'block';
+                progressBar.style.width = '30%';
+
+                const reader = new FileReader();
+                reader.onprogress = function(e) {
+                    if (e.lengthComputable) {
+                        const percent = Math.round((e.loaded / e.total) * 100);
+                        progressBar.style.width = percent + '%';
+                    }
+                };
+
+                reader.onload = function(e) {
+                    progressBar.style.width = '100%';
+                    setTimeout(() => {
+                        progressContainer.style.display = 'none';
+                        progressBar.style.width = '0%';
+                    }, 300);
+
+                    editor.value = e.target.result;
+                    refreshPreview();
+                    showStatus('文件加载成功', 'success');
+                    showModal('上传成功', `文件 <strong>${file.name}</strong> 已成功加载。<br>文件大小：${(file.size / 1024).toFixed(1)} KB`);
+                };
+
+                reader.onerror = function() {
+                    progressContainer.style.display = 'none';
+                    progressBar.style.width = '0%';
+                    showStatus('文件读取失败', 'error');
+                    showModal('上传失败', '无法读取文件内容。请重试。');
+                };
+
+                reader.readAsText(file, 'UTF-8');
+            });
+
+            const imageInput = document.getElementById('image-input');
+            const imagePreviewModal = document.getElementById('image-preview-modal');
+            const previewImage = document.getElementById('preview-image');
+            const imageInfo = document.getElementById('image-info');
+            let currentImageData = null;
+
+            const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+            const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp'];
+            const MAX_DIMENSION = 10000;
+
+            imageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+                    showStatus('不支持的图片格式', 'error');
+                    showModal('上传失败', `不支持的图片格式。支持的格式：JPEG、PNG、GIF、WebP、BMP`);
+                    return;
+                }
+
+                if (file.size > MAX_IMAGE_SIZE) {
+                    const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                    showStatus(`图片过大: ${sizeMB}MB`, 'error');
+                    showModal('上传失败', `图片大小超过限制（最大5MB）。当前文件大小：${sizeMB}MB`);
+                    return;
+                }
+
+                showStatus(`正在读取图片: ${file.name}`, 'info');
+
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        if (img.width > MAX_DIMENSION || img.height > MAX_DIMENSION) {
+                            showStatus('图片尺寸过大', 'error');
+                            showModal('上传失败', `图片尺寸超过限制（最大${MAX_DIMENSION}x${MAX_DIMENSION}像素）。当前尺寸：${img.width}x${img.height}`);
+                            return;
+                        }
+
+                        currentImageData = {
+                            dataUrl: e.target.result,
+                            fileName: file.name,
+                            width: img.width,
+                            height: img.height,
+                            size: file.size
+                        };
+
+                        previewImage.src = currentImageData.dataUrl;
+                        const sizeKB = (currentImageData.size / 1024).toFixed(1);
+                        imageInfo.textContent = `${currentImageData.fileName} | ${currentImageData.width} × ${currentImageData.height} | ${sizeKB} KB`;
+                        imagePreviewModal.classList.add('show');
+                        showStatus('图片预览就绪', 'success');
+                    };
+
+                    img.onerror = function() {
+                        showStatus('图片读取失败', 'error');
+                        showModal('读取失败', '无法读取图片内容，请确保文件是有效的图片格式。');
+                    };
+
+                    img.src = e.target.result;
+                };
+
+                reader.onerror = function() {
+                    showStatus('图片读取失败', 'error');
+                    showModal('读取失败', '无法读取文件内容，请重试。');
+                };
+
+                reader.readAsDataURL(file);
+            });
+
+            const btnCancelPreview = document.getElementById('btn-cancel-preview');
+            const btnInsertImage = document.getElementById('btn-insert-image');
+
+            function closeImagePreview() {
+                imagePreviewModal.classList.remove('show');
+                previewImage.src = '';
+                imageInfo.textContent = '';
+                currentImageData = null;
+            }
+
+            function insertImage() {
+                if (!currentImageData) return;
+
+                const markdownImage = `![${currentImageData.fileName}](${currentImageData.dataUrl})`;
+                const cursorPos = editor.selectionStart;
+                const textBefore = editor.value.substring(0, cursorPos);
+                const textAfter = editor.value.substring(cursorPos);
+                editor.value = textBefore + '\n' + markdownImage + '\n' + textAfter;
+
+                editor.focus();
+                editor.setSelectionRange(cursorPos + markdownImage.length + 2, cursorPos + markdownImage.length + 2);
+
+                closeImagePreview();
+                refreshPreview();
+                showStatus('图片已插入', 'success');
+            }
+
+            btnCancelPreview.addEventListener('click', closeImagePreview);
+            btnInsertImage.addEventListener('click', insertImage);
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && imagePreviewModal.classList.contains('show')) {
+                    closeImagePreview();
+                }
+            });
+
+            const SaveManager = (function() {
+                const saveBtn = document.getElementById('save-btn');
+                const saveDialogOverlay = document.getElementById('save-dialog-overlay');
+                const saveDialogCloseBtn = document.getElementById('save-dialog-close-btn');
+                const saveDialogCancelBtn = document.getElementById('save-dialog-cancel-btn');
+                const saveDialogSaveBtn = document.getElementById('save-dialog-save-btn');
+                const saveFilenameInput = document.getElementById('save-filename');
+                const saveProgress = document.getElementById('save-progress');
+                const saveProgressBar = document.getElementById('save-progress-bar');
+                const saveStatus = document.getElementById('save-status');
+                
+                const autoSaveSettingsBtn = document.getElementById('auto-save-settings-btn');
+                const autoSaveSettingsOverlay = document.getElementById('auto-save-settings-overlay');
+                const autoSaveSettingsCloseBtn = document.getElementById('auto-save-settings-close-btn');
+                const autoSaveSettingsCancelBtn = document.getElementById('auto-save-settings-cancel-btn');
+                const autoSaveSettingsSaveBtn = document.getElementById('auto-save-settings-save-btn');
+                const autoSaveToggle = document.getElementById('auto-save-toggle');
+                const intervalOptions = document.querySelectorAll('.interval-option');
+                const autoSaveIndicator = document.getElementById('auto-save-indicator');
+
+                const errorToast = document.getElementById('error-toast');
+                const successToast = document.getElementById('success-toast');
+
+                let autoSaveEnabled = false;
+                let autoSaveInterval = 30;
+                let autoSaveTimer = null;
+                let lastSavedContent = '';
+
+                function showErrorToast(message) {
+                    errorToast.textContent = message;
+                    errorToast.classList.add('show');
+                    setTimeout(() => errorToast.classList.remove('show'), 3000);
+                }
+
+                function showSuccessToast(message) {
+                    successToast.textContent = message;
+                    successToast.classList.add('show');
+                    setTimeout(() => successToast.classList.remove('show'), 3000);
+                }
+
+                function closeSaveDialog() {
+                    saveDialogOverlay.classList.remove('show');
+                    saveFilenameInput.value = '';
+                    saveProgress.style.display = 'none';
+                    saveProgressBar.style.width = '0%';
+                    saveStatus.textContent = '';
+                }
+
+                function closeAutoSaveSettings() {
+                    autoSaveSettingsOverlay.classList.remove('show');
+                }
+
+                function getFileExtension(format) {
+                    const extensions = {
+                        md: '.md',
+                        txt: '.txt',
+                        json: '.json',
+                        html: '.html',
+                        csv: '.csv',
+                        rtf: '.rtf'
+                    };
+                    return extensions[format] || '.txt';
+                }
+
+                function formatContent(content, format) {
+                    switch (format) {
+                        case 'md':
+                            return content;
+                        case 'txt':
+                            return content;
+                        case 'json':
+                            return JSON.stringify({
+                                content: content,
+                                timestamp: new Date().toISOString(),
+                                format: 'markdown'
+                            }, null, 2);
+                        case 'html':
+                            const escapedContent = content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                            const htmlContent = escapedContent
+                                .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+                                .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+                                .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                                .replace(/\n/g, '<br>');
+                            return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Export</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
+        h1, h2, h3, h4, h5, h6 { margin-top: 1.5em; }
+        code { background: #f4f4f4; padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+        pre { background: #2d2d2d; color: #f8f8f2; padding: 16px; border-radius: 8px; overflow-x: auto; }
+        pre code { background: none; padding: 0; color: inherit; }
+        blockquote { border-left: 4px solid #8b5cf6; padding-left: 1em; margin: 1em 0; background: #f3f4f6; padding: 0.5em 1em; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #e5e7eb; padding: 8px 12px; text-align: left; }
+        th { background: #f9fafb; }
+    </style>
+</head>
+<body>
+${htmlContent}
+</body>
+</html>`;
+                        case 'csv':
+                            const lines = content.split('\n');
+                            return lines.map(line => {
+                                if (line.includes(',')) {
+                                    return `"${line.replace(/"/g, '""')}"`;
+                                }
+                                return line;
+                            }).join('\n');
+                        case 'rtf':
+                            return `{\\rtf1\\ansi\\deff0
+{\\fonttbl{\\f0\\fnil\\fcharset0 Arial;}}
+\\viewkind4\\uc1\\pard\\lang1033\\f0\\fs20
+${content.replace(/\n/g, '\\par\n')}
+}`;
+                        default:
+                            return content;
+                    }
+                }
+
+                async function saveFile(content, filename, format) {
+                    try {
+                        saveProgress.style.display = 'block';
+                        saveStatus.textContent = '正在准备文件...';
+                        saveProgressBar.style.width = '20%';
+
+                        await new Promise(resolve => setTimeout(resolve, 100));
+
+                        saveStatus.textContent = '正在格式化内容...';
+                        saveProgressBar.style.width = '50%';
+
+                        const formattedContent = formatContent(content, format);
+
+                        await new Promise(resolve => setTimeout(resolve, 100));
+
+                        saveStatus.textContent = '正在保存文件...';
+                        saveProgressBar.style.width = '80%';
+
+                        const blob = new Blob([formattedContent], { type: 'text/plain;charset=utf-8' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = filename + getFileExtension(format);
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+
+                        saveProgressBar.style.width = '100%';
+                        saveStatus.textContent = '保存成功！';
+
+                        lastSavedContent = content;
+                        showSuccessToast(`文件已保存: ${filename}${getFileExtension(format)}`);
+
+                        setTimeout(() => {
+                            closeSaveDialog();
+                        }, 500);
+
+                    } catch (error) {
+                        saveStatus.textContent = '保存失败';
+                        console.error('保存失败:', error);
+                        
+                        if (error.name === 'QuotaExceededError') {
+                            showErrorToast('保存失败：磁盘空间不足');
+                        } else if (error.name === 'SecurityError') {
+                            showErrorToast('保存失败：权限不足');
+                        } else {
+                            showErrorToast(`保存失败：${error.message}`);
+                        }
+
+                        setTimeout(() => {
+                            saveProgress.style.display = 'none';
+                            saveProgressBar.style.width = '0%';
+                            saveStatus.textContent = '';
+                        }, 2000);
+                    }
+                }
+
+                function initAutoSave() {
+                    if (autoSaveTimer) {
+                        clearInterval(autoSaveTimer);
+                        autoSaveTimer = null;
+                    }
+
+                    if (autoSaveEnabled) {
+                        autoSaveIndicator.classList.add('active');
+                        autoSaveIndicator.innerHTML = `<span>自动保存 (${autoSaveInterval}秒)</span>`;
+                        
+                        autoSaveTimer = setInterval(() => {
+                            const currentContent = editor.value;
+                            if (currentContent !== lastSavedContent && currentContent.trim()) {
+                                const filename = `auto-save-${Date.now()}`;
+                                saveFile(currentContent, filename, 'md').catch(console.error);
+                            }
+                        }, autoSaveInterval * 1000);
+                    } else {
+                        autoSaveIndicator.classList.remove('active');
+                        autoSaveIndicator.innerHTML = '<span>自动保存</span>';
+                    }
+                }
+
+                function loadSettings() {
+                    try {
+                        const settings = localStorage.getItem('markdown-editor-settings');
+                        if (settings) {
+                            const parsed = JSON.parse(settings);
+                            autoSaveEnabled = parsed.autoSaveEnabled || false;
+                            autoSaveInterval = parsed.autoSaveInterval || 30;
+                            
+                            if (autoSaveEnabled) {
+                                autoSaveToggle.classList.add('active');
+                            }
+                            
+                            intervalOptions.forEach(opt => {
+                                if (parseInt(opt.dataset.interval) === autoSaveInterval) {
+                                    opt.classList.add('selected');
+                                } else {
+                                    opt.classList.remove('selected');
+                                }
+                            });
+                        }
+                    } catch (e) {
+                        console.error('加载设置失败:', e);
+                    }
+                }
+
+                function saveSettings() {
+                    try {
+                        const settings = {
+                            autoSaveEnabled,
+                            autoSaveInterval
+                        };
+                        localStorage.setItem('markdown-editor-settings', JSON.stringify(settings));
+                    } catch (e) {
+                        console.error('保存设置失败:', e);
+                    }
+                }
+
+                function init() {
+                    loadSettings();
+                    initAutoSave();
+
+                    saveBtn.addEventListener('click', function() {
+                        saveDialogOverlay.classList.add('show');
+                        saveFilenameInput.focus();
+                    });
+
+                    saveDialogCloseBtn.addEventListener('click', closeSaveDialog);
+                    saveDialogCancelBtn.addEventListener('click', closeSaveDialog);
+
+                    saveDialogSaveBtn.addEventListener('click', async function() {
+                        const filename = saveFilenameInput.value.trim();
+                        const format = document.querySelector('input[name="save-format"]:checked').value;
+
+                        if (!filename) {
+                            showErrorToast('请输入文件名');
+                            saveFilenameInput.focus();
+                            return;
+                        }
+
+                        if (filename.includes('/') || filename.includes('\\') || filename.includes(':') || filename.includes('*') || filename.includes('?') || filename.includes('"') || filename.includes('<') || filename.includes('>') || filename.includes('|')) {
+                            showErrorToast('文件名包含非法字符');
+                            saveFilenameInput.focus();
+                            return;
+                        }
+
+                        await saveFile(editor.value, filename, format);
+                    });
+
+                    document.addEventListener('keydown', function(e) {
+                        if (e.key === 'Escape' && saveDialogOverlay.classList.contains('show')) {
+                            closeSaveDialog();
+                        }
+                        
+                        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                            e.preventDefault();
+                            saveDialogOverlay.classList.add('show');
+                            saveFilenameInput.focus();
+                        }
+                    });
+
+                    autoSaveSettingsBtn.addEventListener('click', function() {
+                        autoSaveSettingsOverlay.classList.add('show');
+                    });
+
+                    autoSaveSettingsCloseBtn.addEventListener('click', closeAutoSaveSettings);
+                    autoSaveSettingsCancelBtn.addEventListener('click', closeAutoSaveSettings);
+
+                    autoSaveToggle.addEventListener('click', function() {
+                        autoSaveEnabled = !autoSaveEnabled;
+                        autoSaveToggle.classList.toggle('active', autoSaveEnabled);
+                    });
+
+                    intervalOptions.forEach(opt => {
+                        opt.addEventListener('click', function() {
+                            intervalOptions.forEach(o => o.classList.remove('selected'));
+                            opt.classList.add('selected');
+                            autoSaveInterval = parseInt(opt.dataset.interval);
+                        });
+                    });
+
+                    autoSaveSettingsSaveBtn.addEventListener('click', function() {
+                        saveSettings();
+                        initAutoSave();
+                        closeAutoSaveSettings();
+                        showSuccessToast('设置已保存');
+                    });
+                }
+
+                return {
+                    init
+                };
+            })();
+
+            SaveManager.init();
+
+            editor.value = defaultContent;
+
+            const codeStats = document.getElementById('code-stats');
+
+            function updateStats() {
+                const text = editor.value;
+                const chars = text.length;
+                const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+                const lines = text.split('\n').length;
+                codeStats.textContent = `字数: ${chars} | 词数: ${words} | 行数: ${lines}`;
+            }
+
+            editor.addEventListener('input', () => {
+                refreshPreview();
+                updateStats();
+            });
+
+            updateStats();
+            gfmToggle.addEventListener('change', refreshPreview);
+            refreshPreview();
+        });
+    </script>
+</body>
+</html>
