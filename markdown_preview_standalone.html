@@ -1994,11 +1994,26 @@ if __name__ == "__main__":
 
                 const codeBlocks = CodeBlockParser.extractCodeBlocks(markdown);
                 const languages = new Set(codeBlocks.map(b => b.language || 'text'));
-                if (codeBlocks.length > 0) {
-                    codeStats.textContent = `${codeBlocks.length} 代码块 | ${Array.from(languages).join(', ')}`;
-                } else {
-                    codeStats.textContent = '';
+                
+                // 字数统计
+                const charCount = markdown.length;
+                const lineCount = markdown.split('\n').length;
+                const chineseChars = (markdown.match(/[\u4e00-\u9fa5]/g) || []).length;
+                const englishWords = (markdown.match(/[a-zA-Z]+/g) || []).length;
+                
+                let stats = `字符数: ${charCount} | 行数: ${lineCount}`;
+                if (chineseChars > 0) {
+                    stats += ` | 中文字符: ${chineseChars}`;
                 }
+                if (englishWords > 0) {
+                    stats += ` | 英文单词: ${englishWords}`;
+                }
+                
+                if (codeBlocks.length > 0) {
+                    stats += ` | ${codeBlocks.length} 代码块`;
+                }
+                
+                codeStats.textContent = stats;
             }
 
             fileInput.addEventListener('change', function(e) {
