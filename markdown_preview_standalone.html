@@ -1536,13 +1536,13 @@
             }
 
             function parseInline(text) {
-                text = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, src) => {
-                    return `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" />`;
-                });
-                text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, text, href) => {
-                    return `<a href="${escapeHtml(href)}" target="_blank">${escapeHtml(text)}</a>`;
-                });
                 text = escapeHtml(text);
+                text = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, src) => {
+                    return `<img src="${src}" alt="${alt}" />`;
+                });
+                text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, linkText, href) => {
+                    return `<a href="${href}" target="_blank">${linkText}</a>`;
+                });
                 text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
                 text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
                 text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
@@ -1557,7 +1557,7 @@
                 }
 
                 if (/^> /.test(line)) {
-                    return `<blockquote>${parseInline(line.substring(2))}</blockquote>`;
+                    return { blockquote: true, content: parseInline(line.substring(2)) };
                 }
 
                 if (/^\s*[-*+]\s+/.test(line)) {
@@ -1600,6 +1600,8 @@
                     let inTable = false;
                     let inList = null;
                     let listBuffer = [];
+                    let inBlockquote = false;
+                    let blockquoteBuffer = [];
 
                     lines.forEach((line, index) => {
                         if (inCode) {
@@ -1633,7 +1635,20 @@
                         const result = parseLine(line);
 
                         if (typeof result === 'object') {
+                            if (result.blockquote) {
+                                if (!inBlockquote) {
+                                    inBlockquote = true;
+                                    blockquoteBuffer = [];
+                                }
+                                blockquoteBuffer.push(result.content);
+                                return;
+                            }
                             if (result.list) {
+                                if (inBlockquote) {
+                                    html += `<blockquote><p>${blockquoteBuffer.join('<br>')}</p></blockquote>`;
+                                    inBlockquote = false;
+                                    blockquoteBuffer = [];
+                                }
                                 if (inList !== result.list) {
                                     if (inList) {
                                         html += `<${inList}>${listBuffer.map(item => `<li>${item}</li>`).join('')}</${inList}>`;
@@ -1644,6 +1659,19 @@
                                 listBuffer.push(result.content);
                                 return;
                             }
+                        }
+
+                        if (inBlockquote && line.trim() !== '') {
+                            html += `<blockquote><p>${blockquoteBuffer.join('<br>')}</p></blockquote>`;
+                            inBlockquote = false;
+                            blockquoteBuffer = [];
+                        }
+
+                        if (inBlockquote && line.trim() === '') {
+                            html += `<blockquote><p>${blockquoteBuffer.join('<br>')}</p></blockquote>`;
+                            inBlockquote = false;
+                            blockquoteBuffer = [];
+                            return;
                         }
 
                         if (inList) {
@@ -1666,6 +1694,10 @@
                             html += result;
                         }
                     });
+
+                    if (inBlockquote) {
+                        html += `<blockquote><p>${blockquoteBuffer.join('<br>')}</p></blockquote>`;
+                    }
 
                     if (inList) {
                         html += `<${inList}>${listBuffer.map(item => `<li>${item}</li>`).join('')}</${inList}>`;
@@ -1989,7 +2021,6 @@ if __name__ == "__main__":
 ## 表格示例
 
 | 功能 | 状态 |
-|------|------|
 | 编辑器 | ✅ |
 | 预览 | ✅ |
 | 搜索 | ✅ |
@@ -2006,6 +2037,8 @@ if __name__ == "__main__":
 3. 第三项
 
 试试按 **Ctrl+F** 打开搜索功能！
+
+项目连接：[https://github.com/congcongguoke3192/Markdown_viewer](https://github.com/congcongguoke3192/Markdown_viewer)
 `;
 
             function showStatus(message, type) {
