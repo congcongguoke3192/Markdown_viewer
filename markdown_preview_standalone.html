@@ -971,21 +971,17 @@
         .search-highlight {
             background: #fef08a;
             border-radius: 2px;
-            position: relative;
+            padding: 0 2px;
+            margin: 0 -1px;
+            transition: background-color 0.2s ease;
         }
 
         .search-highlight.current {
             background: #f97316;
-        }
-
-        .search-highlight.current::after {
-            content: '';
-            position: absolute;
-            left: 0;
-            right: 0;
-            bottom: -2px;
-            height: 2px;
-            background: #ea580c;
+            color: white;
+            box-shadow: 0 2px 8px rgba(249, 115, 22, 0.4);
+            border-radius: 3px;
+            position: relative;
         }
         
         .modal-overlay {
@@ -1681,7 +1677,7 @@
         })();
 
         const SearchManager = (function() {
-            let matches = [];
+            let matchElements = [];
             let currentMatchIndex = -1;
             let searchPanel = null;
             let searchInput = null;
@@ -1690,9 +1686,8 @@
             let prevBtn = null;
             let nextBtn = null;
             let resultsCount = null;
-            let editor = null;
-            let originalValue = '';
-            let highlightTimeout = null;
+            let preview = null;
+            let originalHTML = '';
 
             function init() {
                 searchPanel = document.getElementById('search-panel');
@@ -1700,7 +1695,7 @@
                 prevBtn = document.getElementById('prev-match');
                 nextBtn = document.getElementById('next-match');
                 resultsCount = document.getElementById('search-results-count');
-                editor = document.getElementById('editor');
+                preview = document.getElementById('preview');
 
                 document.getElementById('search-btn').addEventListener('click', openSearch);
                 document.getElementById('search-close-btn').addEventListener('click', closeSearch);
@@ -1744,21 +1739,23 @@
                         }
                     }
                 });
-
-                editor.addEventListener('scroll', syncScroll);
             }
 
             function openSearch() {
                 searchPanel.classList.add('show');
                 searchInput.focus();
                 searchInput.select();
+                if (searchInput.value) {
+                    performSearch();
+                }
             }
 
             function closeSearch() {
                 searchPanel.classList.remove('show');
                 clearHighlights();
-                matches = [];
+                matchElements = [];
                 currentMatchIndex = -1;
+                updateResultsInfo();
             }
 
             function debounce(func, wait) {
@@ -1774,11 +1771,10 @@
             }
 
             function performSearch() {
-                const searchText = searchInput.value;
-                const text = editor.value;
+                const searchText = searchInput.value.trim();
 
                 clearHighlights();
-                matches = [];
+                matchElements = [];
                 currentMatchIndex = -1;
 
                 if (!searchText) {
@@ -1786,37 +1782,27 @@
                     return;
                 }
 
-                let pattern = searchText;
-                if (!caseSensitive) {
-                    pattern = pattern.toLowerCase();
-                }
+                originalHTML = preview.innerHTML;
 
                 const flags = caseSensitive ? 'g' : 'gi';
                 let regex;
                 try {
                     if (wholeWord) {
-                        regex = new RegExp(`\\b${escapeRegex(pattern)}\\b`, flags);
+                        regex = new RegExp(`\\b${escapeRegex(searchText)}\\b`, flags);
                     } else {
-                        regex = new RegExp(escapeRegex(pattern), flags);
+                        regex = new RegExp(escapeRegex(searchText), flags);
                     }
                 } catch (e) {
                     regex = new RegExp(escapeRegex(searchText), flags);
                 }
 
-                const textToSearch = caseSensitive ? text : text.toLowerCase();
-                let match;
-                while ((match = regex.exec(textToSearch)) !== null) {
-                    matches.push({
-                        start: match.index,
-                        end: match.index + match[0].length,
-                        text: text.substring(match.index, match.index + match[0].length)
-                    });
-                    if (matches.length > 1000) break;
-                }
+                highlightTextInNode(preview, regex);
 
-                if (matches.length > 0) {
+                matchElements = Array.from(preview.querySelectorAll('.search-highlight'));
+
+                if (matchElements.length > 0) {
                     currentMatchIndex = 0;
-                    highlightAllMatches();
+                    updateCurrentHighlight();
                 }
 
                 updateResultsInfo();
@@ -1827,92 +1813,142 @@
                 return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             }
 
-            function highlightAllMatches() {
-                if (matches.length === 0) return;
-
-                const text = editor.value;
-                const beforeMatches = text.substring(0, matches[0].start);
-                const afterMatches = text.substring(matches[matches.length - 1].end);
-
-                editor.value = beforeMatches + getHighlightedText() + afterMatches;
-
-                if (highlightTimeout) clearTimeout(highlightTimeout);
-                highlightTimeout = setTimeout(() => {
-                    syncScroll();
-                }, 10);
-            }
-
-            function getHighlightedText() {
-                let result = '';
-                const text = editor.value;
-
-                matches.forEach((match, index) => {
-                    const highlighted = index === currentMatchIndex
-                        ? `<span class="search-highlight current">${escapeHtml(match.text)}</span>`
-                        : `<span class="search-highlight">${escapeHtml(match.text)}</span>`;
-                    result += highlighted;
+            function highlightTextInNode(rootNode, regex) {
+                const walker = document.createTreeWalker(rootNode, NodeFilter.SHOW_TEXT, {
+                    acceptNode: function(node) {
+                        if (!node.nodeValue || !node.nodeValue.trim()) {
+                            return NodeFilter.FILTER_REJECT;
+                        }
+                        const parent = node.parentNode;
+                        if (parent && (parent.tagName === 'SCRIPT' || parent.tagName === 'STYLE' || parent.classList.contains('search-highlight'))) {
+                            return NodeFilter.FILTER_REJECT;
+                        }
+                        return NodeFilter.FILTER_ACCEPT;
+                    }
                 });
 
-                return result;
+                const textNodes = [];
+                let node;
+                while (node = walker.nextNode()) {
+                    textNodes.push(node);
+                }
+
+                textNodes.forEach(textNode => {
+                    const text = textNode.nodeValue;
+                    regex.lastIndex = 0;
+                    const matches = [];
+                    let match;
+                    while ((match = regex.exec(text)) !== null) {
+                        matches.push({
+                            start: match.index,
+                            end: match.index + match[0].length,
+                            text: match[0]
+                        });
+                        if (matches.length >= 100) break;
+                    }
+
+                    if (matches.length > 0) {
+                        const fragment = document.createDocumentFragment();
+                        let lastIndex = 0;
+
+                        matches.forEach((m, idx) => {
+                            if (m.start > lastIndex) {
+                                fragment.appendChild(document.createTextNode(text.substring(lastIndex, m.start)));
+                            }
+                            const span = document.createElement('span');
+                            span.className = 'search-highlight';
+                            span.setAttribute('data-match-index', idx);
+                            span.textContent = m.text;
+                            fragment.appendChild(span);
+                            lastIndex = m.end;
+                        });
+
+                        if (lastIndex < text.length) {
+                            fragment.appendChild(document.createTextNode(text.substring(lastIndex)));
+                        }
+
+                        textNode.parentNode.replaceChild(fragment, textNode);
+                    }
+                });
             }
 
             function clearHighlights() {
-                originalValue = editor.value.replace(/<[^>]+>/g, '');
-                const text = editor.value;
-                const highlightedText = text.replace(/<span class="search-highlight[^"]*">([^<]*)<\/span>/g, '$1');
-                editor.value = highlightedText;
+                const highlights = preview.querySelectorAll('.search-highlight');
+                highlights.forEach(span => {
+                    const parent = span.parentNode;
+                    const text = document.createTextNode(span.textContent);
+                    parent.replaceChild(text, span);
+                    parent.normalize();
+                });
+                matchElements = [];
+            }
+
+            function updateCurrentHighlight() {
+                matchElements.forEach((el, idx) => {
+                    if (idx === currentMatchIndex) {
+                        el.classList.add('current');
+                    } else {
+                        el.classList.remove('current');
+                    }
+                });
             }
 
             function updateResultsInfo() {
-                if (matches.length === 0) {
+                if (matchElements.length === 0) {
                     const searchText = searchInput.value;
                     resultsCount.textContent = searchText ? '无匹配结果' : '';
                 } else {
-                    resultsCount.textContent = `共 ${matches.length} 个匹配，当前第 ${currentMatchIndex + 1} 个`;
+                    resultsCount.textContent = `共 ${matchElements.length} 个匹配，当前第 ${currentMatchIndex + 1} 个`;
                 }
-                prevBtn.disabled = matches.length <= 1;
-                nextBtn.disabled = matches.length <= 1;
+                prevBtn.disabled = matchElements.length <= 1;
+                nextBtn.disabled = matchElements.length <= 1;
             }
 
             function prevMatch() {
-                if (matches.length === 0) return;
-                currentMatchIndex = currentMatchIndex > 0 ? currentMatchIndex - 1 : matches.length - 1;
+                if (matchElements.length === 0) return;
+                currentMatchIndex = currentMatchIndex > 0 ? currentMatchIndex - 1 : matchElements.length - 1;
+                updateCurrentHighlight();
                 updateResultsInfo();
-                highlightAllMatches();
                 scrollToCurrentMatch();
             }
 
             function nextMatch() {
-                if (matches.length === 0) return;
-                currentMatchIndex = currentMatchIndex < matches.length - 1 ? currentMatchIndex + 1 : 0;
+                if (matchElements.length === 0) return;
+                currentMatchIndex = currentMatchIndex < matchElements.length - 1 ? currentMatchIndex + 1 : 0;
+                updateCurrentHighlight();
                 updateResultsInfo();
-                highlightAllMatches();
                 scrollToCurrentMatch();
             }
 
             function scrollToCurrentMatch() {
-                if (matches.length === 0 || currentMatchIndex < 0) return;
+                if (matchElements.length === 0 || currentMatchIndex < 0) return;
 
-                const match = matches[currentMatchIndex];
-                const text = editor.value;
-                const beforeMatch = text.substring(0, match.start);
-                const lines = beforeMatch.split('\n');
-                const lineNumber = lines.length;
-                const lineHeight = 22;
-                const scrollTop = editor.scrollTop;
-                const editorHeight = editor.clientHeight;
+                const currentEl = matchElements[currentMatchIndex];
+                if (!currentEl) return;
 
-                const targetScrollTop = (lineNumber - 2) * lineHeight;
-                editor.scrollTop = Math.max(0, targetScrollTop);
+                const previewRect = preview.getBoundingClientRect();
+                const elementRect = currentEl.getBoundingClientRect();
+
+                const elementTopRelative = elementRect.top - previewRect.top + preview.scrollTop;
+                const targetScrollTop = elementTopRelative - preview.clientHeight / 2 + elementRect.height / 2;
+
+                preview.scrollTo({
+                    top: Math.max(0, targetScrollTop),
+                    behavior: 'smooth'
+                });
             }
 
-            function syncScroll() {
+            function refreshSearch() {
+                if (searchPanel.classList.contains('show') && searchInput.value) {
+                    performSearch();
+                }
             }
 
             return {
                 init: init,
                 openSearch: openSearch,
-                closeSearch: closeSearch
+                closeSearch: closeSearch,
+                refreshSearch: refreshSearch
             };
         })();
 
@@ -1991,6 +2027,7 @@ if __name__ == "__main__":
                 const markdown = editor.value;
                 const gfm = gfmToggle.checked;
                 preview.innerHTML = MarkdownParser.parse(markdown, gfm);
+                SearchManager.refreshSearch();
 
                 const codeBlocks = CodeBlockParser.extractCodeBlocks(markdown);
                 const languages = new Set(codeBlocks.map(b => b.language || 'text'));
